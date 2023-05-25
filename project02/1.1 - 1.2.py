@@ -3,10 +3,11 @@ import pandas as pd
 import os
 
 def EuclideanDistance(test, train):
-    distances = []
-    for obs in train:
-        distances.append(np.sqrt(sum((np.array(test) - np.array(obs))**2)))
-    return distances
+    # distances = []
+    # for obs in train:
+    #     distances.append(np.sqrt(sum((np.array(test) - np.array(obs))**2)))
+    # return distances
+    return [np.sqrt(sum((np.array(test) - np.array(observation))**2)) for observation in train]
 
 def KNNclassifier(k, x, data, classes):
     dist = EuclideanDistance(x, data)
@@ -30,66 +31,67 @@ df_test = pd.read_csv('project02/data_test.csv', index_col=0)
 
 # df_train = pd.read_csv('data_train.csv', index_col=0)
 lidar_range_train = df_train.values[:, 2:362]
-px_train = df_train["px"].values
-py_train = df_train["py"].values
-t_range_train = range(len(df_train))
-angle = np.linspace(-179, 180, num=360)
-x_y_train = []
-lidar_range_train_list = []
-for t in t_range_train:
-    x_train, y_train = [], []
-    lidar_range_train_sublist = []
-    for i in range(0, lidar_range_train.shape[1]):
-        if lidar_range_train[t][i] > 0:
-            x_train.append(px_train[t]+lidar_range_train[t][i]*np.cos(angle[i]/180*np.pi))
-            y_train.append(py_train[t]+lidar_range_train[t][i]*np.sin(angle[i]/180*np.pi))
-            lidar_range_train_sublist.append(lidar_range_train[t][i])
-    x_y_train.append([x_train, y_train])
-    lidar_range_train_list.append(lidar_range_train_sublist)
+# px_train = df_train["px"].values
+# py_train = df_train["py"].values
+# t_range_train = range(len(df_train))
+# angle = np.linspace(-179, 180, num=360)
+# x_y_train = []
+# lidar_range_train_list = []
+# for t in t_range_train:
+#     x_train, y_train = [], []
+#     lidar_range_train_sublist = []
+#     for i in range(0, lidar_range_train.shape[1]):
+#         if lidar_range_train[t][i] > 0:
+#             x_train.append(px_train[t]+lidar_range_train[t][i]*np.cos(angle[i]/180*np.pi))
+#             y_train.append(py_train[t]+lidar_range_train[t][i]*np.sin(angle[i]/180*np.pi))
+#             lidar_range_train_sublist.append(lidar_range_train[t][i])
+#     x_y_train.append([x_train, y_train])
+#     lidar_range_train_list.append(lidar_range_train_sublist)
 
 # df_test = pd.read_csv('data_test.csv', index_col=0)
 lidar_range_test = df_test.values[:, 2:362]
-px_test = df_test["px"].values
-py_test = df_test["py"].values
-t_range_test = range(len(df_test))
-angle = np.linspace(-179, 180, num=360)
-x_y_test = []
-lidar_range_test_list = []
-for t in t_range_test:
-    x_test, y_test = [], []
-    lidar_range_test_sublist = []
-    for i in range(0, lidar_range_test.shape[1]):
-        if lidar_range_test[t][i] > 0:
-            x_test.append(px_test[t]+lidar_range_test[t][i]*np.cos(angle[i]/180*np.pi))
-            y_test.append(py_test[t]+lidar_range_test[t][i]*np.sin(angle[i]/180*np.pi))
-            lidar_range_test_sublist.append(lidar_range_test[t][i])
-    x_y_test.append([x_test, y_test])
-    lidar_range_test_list.append(lidar_range_test_sublist)
+# px_test = df_test["px"].values
+# py_test = df_test["py"].values
+# t_range_test = range(len(df_test))
+# angle = np.linspace(-179, 180, num=360)
+# x_y_test = []
+# lidar_range_test_list = []
+# for t in t_range_test:
+#     x_test, y_test = [], []
+#     lidar_range_test_sublist = []
+#     for i in range(0, lidar_range_test.shape[1]):
+#         if lidar_range_test[t][i] > 0:
+#             x_test.append(px_test[t]+lidar_range_test[t][i]*np.cos(angle[i]/180*np.pi))
+#             y_test.append(py_test[t]+lidar_range_test[t][i]*np.sin(angle[i]/180*np.pi))
+#             lidar_range_test_sublist.append(lidar_range_test[t][i])
+#     x_y_test.append([x_test, y_test])
+#     lidar_range_test_list.append(lidar_range_test_sublist)
 
 # Classify test dataset using train dataset
 k_list = [1, 3, 5, 7, 9]
 classes_train = df_train.values[:,-1]
 classes_test = df_test.values[:, -1]
-classifications_test_df = np.zeros(shape=(len(lidar_range_test_list), len(k_list)))
+classifications_test = np.zeros(shape=(len(lidar_range_test), len(k_list)))
 for k in range(len(k_list)):
-    for i in range(len(lidar_range_test_list)):
-        classifications_test_df[i, k] = KNNclassifier(k, lidar_range_test_list[i], lidar_range_test_list, classes_test)
+    for i in range(len(lidar_range_test)):
+        classifications_test[i, k] = KNNclassifier(k, lidar_range_test[i], lidar_range_test, classes_test)
 
-classifications_train_df = np.zeros(shape=(len(lidar_range_test_list), len(k_list)))
+
+classifications_train = np.zeros(shape=(len(lidar_range_test), len(k_list)))
 for k in range(len(k_list)):
-    for i in range(len(lidar_range_test_list)):
-        classifications_train_df[i, k] = KNNclassifier(k, lidar_range_train_list[i], lidar_range_train_list, classes_train)
+    for i in range(len(lidar_range_test)):
+        classifications_train[i, k] = KNNclassifier(k, lidar_range_train[i], lidar_range_train, classes_train)
 
-accuracy_test_df = dict()
+accuracy_test = dict()
 for k in range(len(k_list)):
-    accuracy_test_df[k_list[k]] = sum(classifications_test_df[:,k] == classes_test)/len(classes_test)
+    accuracy_test[k_list[k]] = sum(classifications_test[:,k] == classes_test)/len(classes_test)
 
-accuracy_train_df = dict()
+accuracy_train = dict()
 for k in range(len(k_list)):
-    accuracy_train_df[k_list[k]] = sum(classifications_train_df[:,k] == classes_train)/len(classes_train)
+    accuracy_train[k_list[k]] = sum(classifications_train[:,k] == classes_train)/len(classes_train)
 
-print(accuracy_test_df)
-print(accuracy_train_df)
+print(accuracy_test)
+print(accuracy_train)
 # # To complete
 
 # import numpy as np

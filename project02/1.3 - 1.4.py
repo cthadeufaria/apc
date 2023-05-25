@@ -4,26 +4,25 @@ import numpy as np
 df_train = pd.read_csv('project02/data_train.csv', index_col=0)
 df_test = pd.read_csv('project02/data_test.csv', index_col=0)
 
-# df_train = pd.read_csv('data_train.csv', index_col=0)
-lidar_range_train = df_train.values[:, 2:362]
-px_train = df_train["px"].values
-py_train = df_train["py"].values
-t_range_train = range(len(df_train))
-angle = np.linspace(-179, 180, num=360)
-x_y_train = []
-lidar_range_train_list = []
-for t in t_range_train:
-    x_train, y_train = [], []
-    lidar_range_train_sublist = []
-    for i in range(0, lidar_range_train.shape[1]):
-        if lidar_range_train[t][i] > 0:
-            x_train.append(px_train[t]+lidar_range_train[t][i]*np.cos(angle[i]/180*np.pi))
-            y_train.append(py_train[t]+lidar_range_train[t][i]*np.sin(angle[i]/180*np.pi))
-            lidar_range_train_sublist.append(lidar_range_train[t][i])
-    x_y_train.append([x_train, y_train])
-    lidar_range_train_list.append(lidar_range_train_sublist)
+# shuffle arrays
+array_train = np.array(df_train)
+array_test = np.array(df_test)
+np.random.shuffle(array_train)
+np.random.shuffle(array_test)
 
-classes_train = df_train.values[:,-1]
+lidar_range_train = array_train[:, 2:362]
+lidar_range_test = array_test[:, 2:362]
+classes_train = array_train[:,-1]
+classes_test = array_test[:, -1]
+classes_train[np.where(classes_train == 2.)] = np.float64(0.)
+classes_test[np.where(classes_test == 2.)] = np.float64(0.)
+
+# Arrays with 1st 10 non-zero measurements
+def filter_10_nonzeros(a):
+    return a[np.where(a > 0)][0:10]
+
+lidar_train_10 = np.apply_along_axis(filter_10_nonzeros, 1, lidar_range_train)
+lidar_test_10 = np.apply_along_axis(filter_10_nonzeros, 1, lidar_range_test)
 
 import numpy as np
 
@@ -49,17 +48,12 @@ def sigmoid_derivative(x):
 class NeuralNetwork:
     def __init__(self) -> None:
         # biases
-        self.biases = np.zeros(shape=(6,))
-        for i in range(self.biases.shape[0]):
-            self.biases[i] = np.random.random()
-
+        self.biases = np.random.uniform(low=0., high=0.05, size=(6,))
         # weights
-        self.weights = np.zeros(shape=(55,))
-        for i in range(self.weights.shape[0]):
-            self.weights[i] = np.random.random()
+        self.weights = np.random.uniform(low=0., high=0.05, size=(55,))
 
-    def feedforward(self, x_list):
-        x = np.array(x_list)
+    def feedforward(self, x):
+        # x = np.array(x_list)
         self.total_h1 = np.dot(x, self.weights[0:10]) + self.biases[0]
         self.total_h2 = np.dot(x, self.weights[10:20]) + self.biases[1]
         self.total_h3 = np.dot(x, self.weights[20:30]) + self.biases[2]
@@ -79,15 +73,13 @@ class NeuralNetwork:
 
         return self.output_o1
     
-    def train(self, input, y_trues, learning_rate=0.1, epochs=300):
+    def train(self, input, y_trues, learning_rate=0.005, epochs=500):
         for epoch in range(epochs):
             for x, y_true in zip(input, y_trues):
                 y_pred = self.feedforward(x)
 
                 # Backpropagation ###########################
-
-                dl_dypred = -2*(y_true - y_pred)
-                print(y_true,  y_pred)
+                dl_dypred = -2 * (y_true - y_pred)
 
                 # output layer / neuron o1
                 dypred_dw51 = self.output_h1 * sigmoid_derivative(self.total_o1)
@@ -171,8 +163,6 @@ class NeuralNetwork:
 
                 # Gradient Descent
                 # Output layer / neuron o1
-                if y_true == 2:
-                    pass
                 self.weights[50] -= learning_rate * dl_dypred * dypred_dw51
                 self.weights[51] -= learning_rate * dl_dypred * dypred_dw52
                 self.weights[52] -= learning_rate * dl_dypred * dypred_dw53
@@ -246,11 +236,10 @@ class NeuralNetwork:
                 self.biases[4] -= learning_rate * dl_dypred * dypred_dh5 * dh5_db5
 
             # Performance assessment
-            y_preds = np.apply_along_axis(self.feedforward, 1, input)
-            loss = mse_loss(y_trues, y_preds)
-            print("Epoch %d | Loss: %.4f" % (epoch, loss))
+            if epoch % 25 == 0:
+                y_preds = np.apply_along_axis(self.feedforward, 1, input)
+                loss = mse_loss(y_trues, y_preds)
+                print("Epoch %d | Loss: %.4f" % (epoch, loss))
 
-# x_y_train_10 = [[x[0:10], y[0:10]] for x, y in x_y_train]
-lidar_range_train_list_10 = [x[0:10] for x in lidar_range_train_list]
 model = NeuralNetwork()
-model.train(lidar_range_train_list_10, classes_train)
+model.train(lidar_train_10, classes_train)
